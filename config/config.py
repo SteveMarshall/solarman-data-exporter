@@ -32,6 +32,7 @@ if MQTT_ENABLED:
 # How often to check(seconds), only applies when 'PROMETHEUS = False' otherwise uses Prometheus scrape interval
 CHECK_INTERVAL = int(os.environ.get('CHECK_INTERVAL', 30))
 PROMETHEUS_ENABLED = strtobool(os.environ.get('PROMETHEUS', 'True'))
+PROMETHEUS_PREFIX = os.environ.get('PROMETHEUS_PREFIX', 'solarman_')
 PROMETHEUS_PORT = int(os.environ.get('PROMETHEUS_PORT', 18000))
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()

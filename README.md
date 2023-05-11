@@ -38,6 +38,8 @@ This script can be configured using the following environment variables:
   Prometheus scrape interval
 - `PROMETHEUS_ENABLED` (default: `True`): Whether to publish metrics
   for Prometheus
+- `PROMETHEUS_PREFIX` (default: `solarman_`): Prefix to apply to all
+  metrics exported to Prometheus
 - `PROMETHEUS_PORT` (default: `18000`): TCP port to expose Prometheus
   metrics on
 - `LOGLEVEL` (default: `INFO`): Set the level of detail at which to

@@ -106,7 +106,11 @@ class CustomCollector(object):
         scrape_solis()
 
         for metric, value in metrics_dict.items():
-            yield GaugeMetricFamily(metric, value[0], value=value[1])
+            yield GaugeMetricFamily(
+                f'{config.PROMETHEUS_PREFIX}{metric}',
+                value[0],
+                value=value[1]
+            )
 
 
 if __name__ == '__main__':
