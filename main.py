@@ -132,7 +132,6 @@ class CustomCollector(object):
 
     def collect(self):
         scrape_solis(debug)
-        publish_mqtt()
 
         for metric, value in metrics_dict.items():
             yield GaugeMetricFamily(metric, value[0], value=value[1])
@@ -140,6 +139,10 @@ class CustomCollector(object):
 
 if __name__ == '__main__':
     try:
+        if not (config.MQTT or config.PROMETHEUS):
+            logging.error(f'Cannot start: no exporters enabled')
+            exit(1)
+
         if config.DEBUG:
             logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.DEBUG,
                                 datefmt='%Y-%m-%d %H:%M:%S')
@@ -156,13 +159,11 @@ if __name__ == '__main__':
             start_http_server(config.PROMETHEUS_PORT)
 
             REGISTRY.register(CustomCollector())
-            while True:
-                sleep(config.CHECK_INTERVAL)
 
-        else:
-            while True:
+        while True:
+            if config.MQTT:
                 publish_mqtt()
-                sleep(config.CHECK_INTERVAL)
+            sleep(config.CHECK_INTERVAL)
 
     except Exception as e:
         logging.error(f'Cannot start: {repr(e)}')

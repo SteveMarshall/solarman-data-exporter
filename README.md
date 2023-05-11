@@ -4,7 +4,7 @@ This is 3rd iteration of my Solis Inverter monitor.
 This is based on great work by [jmccrohan](https://github.com/jmccrohan/pysolarmanv5)
 
 The data is pulled directly from Solis WiFi stick. You need to provide serial number and IP address of the stick.   
-Metrics are published to MQTT and Prometheus, or just MQTT.   
+Metrics are published to one or both of MQTT and Prometheus.
 The registers to be polled and their meaning are stored in `registers.py` file. I have populated file already with registers that I use. The list is not final but shoudl be good enough for most cases. Note the registers are not the same on all models and firmware versions. They do tend to move with firmware upgrades. You may need to adjusts or add new ones for the inverter that you use.
 
 ## Configuration
@@ -14,6 +14,7 @@ Modify the values in [config.py](./config/config.py) to match your setup
 INVERTER_SERIAL = 123456789   # WiFi stick serial number
 INVERTER_IP = "192.168.1.55"  # IP address of inverter
 INVERTER_PORT = 8899          # Port number
+MQTT = True                   # Enable MQTT publishing
 MQTT_SERVER = "192.168.1.20"  # IP address of MQTT server
 MQTT_PORT = 1883              # Port number of MQTT server
 MQTT_TOPIC = "solis/METRICS"  # MQTT topic to use
