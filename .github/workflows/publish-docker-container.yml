@@ -23,6 +23,9 @@ jobs:
         uses: docker/metadata-action@v4.4.0
         with:
           images: stevemarshall/solarman-data-exporter
+          tags: |
+            # set latest tag for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4.0.0
