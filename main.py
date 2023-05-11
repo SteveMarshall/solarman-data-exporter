@@ -55,35 +55,6 @@ def scrape_solis():
                     continue
             break
 
-        # Convert time to epoch
-        if reg == 33022:
-            inv_year = '20' + str(regs[0]) + '-'
-            if regs[1] < 10:
-                inv_month = '0' + str(regs[1]) + '-'
-            else:
-                inv_month = str(regs[1]) + '-'
-            if regs[2] < 10:
-                inv_day = '0' + str(regs[2]) + ' '
-            else:
-                inv_day = str(regs[2]) + ' '
-            if regs[3] < 10:
-                inv_hour = '0' + str(regs[3]) + ':'
-            else:
-                inv_hour = str(regs[3]) + ':'
-            if regs[4] < 10:
-                inv_min = '0' + str(regs[4]) + ':'
-            else:
-                inv_min = str(regs[4]) + ':'
-            if regs[5] < 10:
-                inv_sec = '0' + str(regs[5])
-            else:
-                inv_sec = str(regs[5])
-            inv_time = inv_year + inv_month + inv_day + inv_hour + inv_min + inv_sec
-            logging.info(f'Solis Inverter time: {inv_time}')
-            time_tuple = strptime(inv_time, '%Y-%m-%d %H:%M:%S')
-            time_epoch = mktime(time_tuple)
-            metrics_dict['system_epoch'] = 'System Epoch Time', time_epoch
-
         # Add metric to list
 
         for (i, item) in enumerate(regs):
