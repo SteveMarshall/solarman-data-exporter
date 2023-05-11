@@ -1,10 +1,16 @@
-# SolisMon3
+# Solarman Data Exporter
 
-This is 3rd iteration of my Solis Inverter monitor. 
-This is based on great work by [jmccrohan](https://github.com/jmccrohan/pysolarmanv5)
+This is a collection of utilities to collect data from Solarman wifi
+data logging sticks and publish them to one or both of Prometheus and
+MQTT.
 
-The data is pulled directly from Solis WiFi stick. You need to provide serial number and IP address of the stick.   
-Metrics are published to one or both of MQTT and Prometheus.
+This is based on the work of
+[NosIreland](https://github.com/NosIreland/solismon3) and
+[jmccrohan](https://github.com/jmccrohan/pysolarmanv5).
+
+The data is pulled directly from the Solarman WiFi stick. You need to
+provide the address and serial number of the stick.
+
 The registers to be polled and their meaning are stored in `registers.py` file. I have populated file already with registers that I use. The list is not final but shoudl be good enough for most cases. Note the registers are not the same on all models and firmware versions. They do tend to move with firmware upgrades. You may need to adjusts or add new ones for the inverter that you use.
 
 ## Configuration
@@ -13,27 +19,29 @@ The registers to be polled and their meaning are stored in `registers.py` file. 
 
 This script can be configured using the following environment variables:
 
+- `INVERTER_ADDRESS` (no default): IP address or hostname of data
+  logging stick
+- `INVERTER_SERIAL` (no default): Serial number of the data logging
+  stick (not inverter!)
+- `INVERTER_PORT` (default: `8899`): TCP port to connect to data
+  logging stick
+- `MQTT_ENABLED` (default: `True`): Whether to publish metrics to MQTT
+- `MQTT_SERVER` (no default): IP address or hostname of MQTT server
+- `MQTT_PORT` (default: `1883`): TCP port to connect to MQTT server
+- `MQTT_USER` (default: `solarman-exporter`): Username for MQTT server
+- `MQTT_PASS` (no default): Password for MQTT server
+- `MQTT_TOPIC` (default: `solis/METRICS`): Topic on which to publish
+  MQTT messages
+- `MQTT_KEEPALIVE` (default: `60`): MQTT keepalive
+- `CHECK_INTERVAL` (default: `30`): How often to scrape metrics in
+  seconds, only applies when 'PROMETHEUS = False' otherwise uses
+  Prometheus scrape interval
+- `PROMETHEUS_ENABLED` (default: `True`): Whether to publish metrics
+  for Prometheus
+- `PROMETHEUS_PORT` (default: `18000`): TCP port to expose Prometheus
+  metrics on
 - `LOGLEVEL` (default: `INFO`): Set the level of detail at which to
   output log messages.
-
-### config.py
-Modify the values in [config.py](./config/config.py) to match your setup
-```
-INVERTER_SERIAL = 123456789   # WiFi stick serial number
-INVERTER_IP = "192.168.1.55"  # IP address of inverter
-INVERTER_PORT = 8899          # Port number
-MQTT = True                   # Enable MQTT publishing
-MQTT_SERVER = "192.168.1.20"  # IP address of MQTT server
-MQTT_PORT = 1883              # Port number of MQTT server
-MQTT_TOPIC = "solis/METRICS"  # MQTT topic to use
-MQTT_USER = "foo"             # MQTT auth user (blank to disable auth)
-MQTT_PASS = "bar"             # MQTT auth password
-CHECK_INTERVAL = 30           # How often to check(seconds), only applies when 'PROMETHEUS = False' otherwise uses Prometheus scrape interval
-MQTT_KEEPALIVE = 60           # MQTT keepalive
-PROMETHEUS = False            # Enable Prometheus exporter
-PROMETHEUS_PORT = 18000       # Port to use for Prometheus exporter
-DEBUG = False                 # Enable debugging, helpfull to diagnose problems
-```
 
 ### registers.py
 I have registers predefined for single phase Solis RHI 4G hybrid inverter in [registers.py](./config/registers.py) file. 

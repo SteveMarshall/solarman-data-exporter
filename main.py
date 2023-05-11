@@ -20,7 +20,7 @@ def scrape_solis():
     try:
         logging.info('Connecting to Solis Modbus')
         modbus = PySolarmanV5(
-            config.INVERTER_IP,
+            config.INVERTER_ADDRESS,
             config.INVERTER_SERIAL,
             port=config.INVERTER_PORT
         )
@@ -71,7 +71,7 @@ def scrape_solis():
 def publish_mqtt():
     mqtt_dict = {}
     try:
-        if not config.PROMETHEUS:
+        if not config.PROMETHEUS_ENABLED:
             scrape_solis()
 
         # Resize dictionary and convert to JSON
@@ -111,7 +111,7 @@ class CustomCollector(object):
 
 if __name__ == '__main__':
     try:
-        if not (config.MQTT or config.PROMETHEUS):
+        if not (config.MQTT_ENABLED or config.PROMETHEUS_ENABLED):
             logging.error(f'Cannot start: no exporters enabled')
             exit(1)
 
@@ -123,14 +123,14 @@ if __name__ == '__main__':
 
         logging.info('Starting')
 
-        if config.PROMETHEUS:
+        if config.PROMETHEUS_ENABLED:
             logging.info(f'Starting Web Server for Prometheus on port: {config.PROMETHEUS_PORT}')
             start_http_server(config.PROMETHEUS_PORT)
 
             REGISTRY.register(CustomCollector())
 
         while True:
-            if config.MQTT:
+            if config.MQTT_ENABLED:
                 publish_mqtt()
             sleep(config.CHECK_INTERVAL)
 
