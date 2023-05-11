@@ -64,7 +64,9 @@ To use it, run:
 ```
 docker run -it -d \
   --restart unless-stopped \
-  -v /solarman-data-exporter/config:/solarman-data-exporter/config
+  -e "INVERTER_ADDRESS=${INVERTER_ADDRESS}"
+  -e "INVERTER_SERIAL=${INVERTER_SERIAL}"
+  -e "MQTT_ENABLED=False"
   -p 18000:18000
   stevemarshall/solarman-data-exporter
 ```
@@ -78,14 +80,12 @@ services:
   solarman-data-exporter:
     image: stevemarshall/solarman-data-exporter
     environment:
-      - INVERTER_ADDRESS="192.168.1.1"
-      - INVERTER_SERIAL=123456789
+      - INVERTER_ADDRESS=${INVERTER_ADDRESS}
+      - INVERTER_SERIAL=${INVERTER_SERIAL}
       - MQTT_ENABLED=False
     ports:
       - 18000:18000
     restart: always
-    volumes:
-      - /solarman-data-exporter/config:/solarman-data-exporter/config
 ```
 
 ### Testing
