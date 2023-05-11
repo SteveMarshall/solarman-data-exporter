@@ -41,7 +41,7 @@ def scrape_solis():
             try:
                 logging.debug(f'Scrapping registers {reg} length {reg_len}')
                 # read registers at address , store result in regs list
-                regs = modbus.read_input_registers(register_addr=reg, quantity=reg_len)
+                regs = modbus.read_holding_registers(register_addr=reg, quantity=reg_len)
                 logging.debug(regs)
             except Exception as e:
                 if c == 3:
