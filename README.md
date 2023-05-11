@@ -53,31 +53,39 @@ Register number you want to start with(integer), register name(string, no space 
 Add '*' in front of register name if you want it to be skipped. 
 
 ## Running
-Run main.py
 
-### Running in docker
-Docker images is provided.   
-On your docker host create a folder solismon3/config and copy your modified config.py and registers.py files in there
+### Running in Docker
+
+This repo is available as a [pre-built Docker
+container](https://hub.docker.com/r/stevemarshall/solarman-data-exporter).
+
+To use it, run:
+
 ```
-docker run -it -d --restart unless-stopped --name solismon3 -v /solismon3/config:/solismon3/config -p 18000:18000 nosireland/solismon3
+docker run -it -d \
+  --restart unless-stopped \
+  -v /solarman-data-exporter/config:/solarman-data-exporter/config
+  -p 18000:18000
+  stevemarshall/solarman-data-exporter
 ```
 
-### Docker Compose example
-```
-version: "3.4"
+### Running in Docker Compose
 
+Add something along these lines to your `docker-compose.yml`:
+
+```
 services:
-  solismon3:
-    image: nosireland/solismon3:latest
-    container_name: solismon3
-    restart: always
+  solarman-data-exporter:
+    image: stevemarshall/solarman-data-exporter
+    environment:
+      - INVERTER_ADDRESS="192.168.1.1"
+      - INVERTER_SERIAL=123456789
+      - MQTT_ENABLED=False
     ports:
       - 18000:18000
+    restart: always
     volumes:
-      - /solismon3/config:/solismon3/config
-    logging:
-      options:
-        max-size: 5m
+      - /solarman-data-exporter/config:/solarman-data-exporter/config
 ```
 
 ### Testing
