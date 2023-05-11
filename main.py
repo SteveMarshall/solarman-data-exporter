@@ -11,10 +11,8 @@ from prometheus_client.core import GaugeMetricFamily, REGISTRY
 from pysolarmanv5.pysolarmanv5 import PySolarmanV5
 
 metrics_dict = {}
-debug = 0
 
-
-def scrape_solis(debug):
+def scrape_solis():
     custom_metrics_dict = {}
     global metrics_dict
     metrics_dict = {}
@@ -22,7 +20,10 @@ def scrape_solis(debug):
     try:
         logging.info('Connecting to Solis Modbus')
         modbus = PySolarmanV5(
-            config.INVERTER_IP, config.INVERTER_SERIAL, port=config.INVERTER_PORT, mb_slave_id=1, verbose=debug)
+            config.INVERTER_IP,
+            config.INVERTER_SERIAL,
+            port=config.INVERTER_PORT
+        )
     except Exception as e:
         logging.error(f'{repr(e)}. Exiting')
         exit(1)
@@ -100,7 +101,7 @@ def publish_mqtt():
     mqtt_dict = {}
     try:
         if not config.PROMETHEUS:
-            scrape_solis(debug)
+            scrape_solis()
 
         # Resize dictionary and convert to JSON
         for metric, value in metrics_dict.items():
@@ -131,7 +132,7 @@ class CustomCollector(object):
         pass
 
     def collect(self):
-        scrape_solis(debug)
+        scrape_solis()
 
         for metric, value in metrics_dict.items():
             yield GaugeMetricFamily(metric, value[0], value=value[1])
@@ -143,14 +144,11 @@ if __name__ == '__main__':
             logging.error(f'Cannot start: no exporters enabled')
             exit(1)
 
-        if config.DEBUG:
-            logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.DEBUG,
-                                datefmt='%Y-%m-%d %H:%M:%S')
-            debug = 1
-        else:
-            logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO,
-                                datefmt='%Y-%m-%d %H:%M:%S')
-            debug = 0
+        logging.basicConfig(
+            format='%(asctime)s %(levelname)s:%(name)s %(message)s',
+            level=config.LOGLEVEL,
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
 
         logging.info('Starting')
 

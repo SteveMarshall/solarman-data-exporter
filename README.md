@@ -8,6 +8,14 @@ Metrics are published to one or both of MQTT and Prometheus.
 The registers to be polled and their meaning are stored in `registers.py` file. I have populated file already with registers that I use. The list is not final but shoudl be good enough for most cases. Note the registers are not the same on all models and firmware versions. They do tend to move with firmware upgrades. You may need to adjusts or add new ones for the inverter that you use.
 
 ## Configuration
+
+### Environment variables
+
+This script can be configured using the following environment variables:
+
+- `LOGLEVEL` (default: `INFO`): Set the level of detail at which to
+  output log messages.
+
 ### config.py
 Modify the values in [config.py](./config/config.py) to match your setup
 ```

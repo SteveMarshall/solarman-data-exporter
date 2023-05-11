@@ -1,3 +1,5 @@
+import os
+
 INVERTER_SERIAL = 123456789   # WiFi stick serial number
 INVERTER_IP = "192.168.1.55"  # IP address of inverter
 INVERTER_PORT = 8899          # Port number
@@ -11,4 +13,4 @@ CHECK_INTERVAL = 30           # How often to check(seconds), only applies when '
 MQTT_KEEPALIVE = 60           # MQTT keepalive
 PROMETHEUS = False            # Enable Prometheus exporter
 PROMETHEUS_PORT = 18000       # Port to use for Prometheus exporter
-DEBUG = False                 # Enable debugging, helpfull to diagnose problems
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
