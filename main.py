@@ -14,48 +14,6 @@ metrics_dict = {}
 debug = 0
 
 
-def add_modified_metrics(custom_metrics_dict):
-    met_pwr = custom_metrics_dict['meter_active_power_1'] - custom_metrics_dict['meter_active_power_2']
-    total_load = custom_metrics_dict['house_load_power'] + custom_metrics_dict['bypass_load_power']
-
-    # Present battery modified metrics
-    if custom_metrics_dict['battery_current_direction'] == 0:
-        metrics_dict['battery_power_modified'] = 'Battery Power(modified)', custom_metrics_dict['battery_power_2']
-        metrics_dict['battery_power_in_modified'] = 'Battery Power In(modified)', custom_metrics_dict['battery_power_2']
-        metrics_dict['battery_power_out_modified'] = 'Battery Power Out(modified)', 0
-        metrics_dict['grid_to_battery_power_in_modified'] = 'Grid to Battery Power In(modified)', 0
-    else:
-        metrics_dict['battery_power_modified'] = 'Battery Power(modified)', custom_metrics_dict['battery_power_2'] * -1 # negative
-        metrics_dict['battery_power_out_modified'] = 'Battery Power Out(modified)', custom_metrics_dict['battery_power_2']
-        metrics_dict['battery_power_in_modified'] = 'Battery Power In(modified)', 0
-        metrics_dict['grid_to_battery_power_in_modified'] = 'Grid to Battery Power In(modified)', 0
-
-    if total_load < met_pwr and custom_metrics_dict['battery_power_2'] > 0:
-        metrics_dict['grid_to_battery_power_in_modified'] = 'Grid to Battery Power In(modified)', custom_metrics_dict['battery_power_2']
-
-    # Present meter modified metrics
-    if met_pwr > 0:
-        metrics_dict['meter_power_in_modified'] = 'Meter Power In(modified)', met_pwr
-        metrics_dict['meter_power_modified'] = 'Meter Power(modified)', met_pwr
-        metrics_dict['meter_power_out_modified'] = 'Meter Power Out(modified)', 0
-    else:
-        metrics_dict['meter_power_out_modified'] = 'Meter Power Out(modified)', met_pwr * - 1  # negative
-        metrics_dict['meter_power_in_modified'] = 'Meter Power In(modified)', 0
-        metrics_dict['meter_power_modified'] = 'Meter Power(modified)', met_pwr
-
-    # Present load modified metrics
-    metrics_dict['total_load_power_modified'] = 'Total Load Power(modified)', total_load
-
-    if 0 < custom_metrics_dict['total_dc_input_power_2'] <= total_load:
-        metrics_dict['solar_to_house_power_modified'] = 'Solar To House Power(modified)', custom_metrics_dict['total_dc_input_power_2']
-    elif custom_metrics_dict['total_dc_input_power_2'] == 0:
-        metrics_dict['solar_to_house_power_modified'] = 'Solar To House Power(modified)', 0
-    elif custom_metrics_dict['total_dc_input_power_2'] > total_load:
-        metrics_dict['solar_to_house_power_modified'] = 'Solar To House Power(modified)', total_load
-
-    logging.info('Added modified metrics')
-
-
 def scrape_solis(debug):
     custom_metrics_dict = {}
     global metrics_dict
@@ -130,36 +88,11 @@ def scrape_solis(debug):
         for (i, item) in enumerate(regs):
             if '*' not in reg_des[i][0]:
                 metrics_dict[reg_des[i][0]] = reg_des[i][1], item
-
-                # Add custom metrics to custom_metrics_dict
-                # Get battery metric for modification
-                if reg_des[i][0] == 'battery_power_2':
-                    custom_metrics_dict[reg_des[i][0]] = item
-                elif reg_des[i][0] == 'battery_current_direction':
-                    custom_metrics_dict[reg_des[i][0]] = item
-
-                # Get grid metric for modification
-                elif reg_des[i][0] == 'meter_active_power_1':
-                    custom_metrics_dict[reg_des[i][0]] = item
-                elif reg_des[i][0] == 'meter_active_power_2':
-                    custom_metrics_dict[reg_des[i][0]] = item
-
-                # Get load metric for modification
-                elif reg_des[i][0] == 'house_load_power':
-                    custom_metrics_dict[reg_des[i][0]] = item
-                elif reg_des[i][0] == 'total_dc_input_power_2':
-                    custom_metrics_dict[reg_des[i][0]] = item
-                elif reg_des[i][0] == 'bypass_load_power':
-                    custom_metrics_dict[reg_des[i][0]] = item
-
             else:
                 regs_ignored += 1
 
     logging.info(f'Ignored registers: {regs_ignored}')
 
-    # Create modified metrics
-    if config.MODIFIED_METRICS:
-        add_modified_metrics(custom_metrics_dict)
     logging.info('Scraped')
 
 

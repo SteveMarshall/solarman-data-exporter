@@ -23,25 +23,7 @@ CHECK_INTERVAL = 30           # How often to check(seconds), only applies when '
 MQTT_KEEPALIVE = 60           # MQTT keepalive
 PROMETHEUS = False            # Enable Prometheus exporter
 PROMETHEUS_PORT = 18000       # Port to use for Prometheus exporter
-MODIFIED_METRICS = True       # Enable modified metrics
 DEBUG = False                 # Enable debugging, helpfull to diagnose problems
-```
-
-MODIFIED_METRICS create additional metrics. It takes multiple existing metrics and creates single metric out of them.   
-This is useful for me as I do not need to make modifications later in Home-assistant using templates and/or Grafana.
-In Home-assistant this allows me easy integration with custom cards like 
-[tesla-style-solar-power-card](https://github.com/reptilex/tesla-style-solar-power-card)
-
-```
-battery_power_modified
-battery_power_in_modified
-battery_power_out_modified
-grid_to_battery_power_in_modified
-meter_power_in_modified
-meter_power_modified
-meter_power_out_modified
-total_load_power_modified
-solar_to_house_power_modified
 ```
 
 ### registers.py

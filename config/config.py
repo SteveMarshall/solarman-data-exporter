@@ -10,5 +10,4 @@ CHECK_INTERVAL = 30           # How often to check(seconds), only applies when '
 MQTT_KEEPALIVE = 60           # MQTT keepalive
 PROMETHEUS = False            # Enable Prometheus exporter
 PROMETHEUS_PORT = 18000       # Port to use for Prometheus exporter
-MODIFIED_METRICS = True       # Enable modified metrics
 DEBUG = False                 # Enable debugging, helpfull to diagnose problems
