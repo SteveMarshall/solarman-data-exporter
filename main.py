@@ -18,7 +18,7 @@ def scrape_solis():
     metrics_dict = {}
     regs_ignored = 0
     try:
-        logging.info('Connecting to Solis Modbus')
+        logging.info('Connecting to Solarman ModBus interface')
         modbus = PySolarmanV5(
             config.INVERTER_ADDRESS,
             config.INVERTER_SERIAL,

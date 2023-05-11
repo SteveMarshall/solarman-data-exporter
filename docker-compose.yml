@@ -1,0 +1,11 @@
+services:
+  solarman-data-exporter:
+    build: .
+    environment:
+      - INVERTER_ADDRESS=${INVERTER_ADDRESS}
+      - INVERTER_SERIAL=${INVERTER_SERIAL}
+      - MQTT_ENABLED=False
+    ports:
+      - 18000:18000
+    volumes:
+      - ./:/solarman-data-exporter
