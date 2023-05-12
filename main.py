@@ -1,4 +1,3 @@
-# ver. 0.0.29
 import config.config as config
 import config.registers as registers
 import logging
@@ -10,11 +9,7 @@ from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
 from pysolarmanv5.pysolarmanv5 import PySolarmanV5
 
-metrics_dict = {}
-
-def scrape_solis():
-    custom_metrics_dict = {}
-    global metrics_dict
+def query_datalogger():
     metrics_dict = {}
     regs_ignored = 0
     try:
@@ -28,54 +23,54 @@ def scrape_solis():
         logging.error(f'{repr(e)}. Exiting')
         exit(1)
 
-    logging.info('Scraping...')
+    logging.info('Connected')
 
     for r in registers.all_regs:
-        reg = r[0]
-        reg_len = len(r[1])
-        reg_des = r[1]
+        address = r[0]
+        quantity = len(r[1])
+        reg_descriptions = r[1]
 
         # Sometimes the query fails this will retry 3 times before exiting
-        c = 0
-        while True:
+        for retry in range(0, 3):
             try:
-                logging.debug(f'Scrapping registers {reg} length {reg_len}')
-                # read registers at address , store result in regs list
-                regs = modbus.read_holding_registers(register_addr=reg, quantity=reg_len)
+                logging.debug(f'Reading registers at {address}, quantity {quantity}')
+
+                regs = modbus.read_holding_registers(
+                    register_addr=address,
+                    quantity=reg_len
+                )
                 logging.debug(regs)
             except Exception as e:
-                if c == 3:
-                    logging.error(f'Cannot read registers {reg} length{reg_len}. Tried {c} times. Exiting {repr(e)}')
+                if retry == 3:
+                    logging.error(f'Cannot read registers at {address}, quantity {quantity}. Tried {retry} times. Exiting {repr(e)}')
                     exit(1)
-                else:
-                    c += 1
-                    logging.error(f'Cannot read registers {reg} length {reg_len} {repr(e)}')
-                    logging.error(f'Retry {c} in 3s')
-                    sleep(3)  # hold before retry
-                    continue
+                logging.error(f'Cannot read registers {address}, quantity {quantity} {repr(e)}')
+                logging.error(f'Retry {retry} in 3s')
+                sleep(3)
+                continue
             break
 
         # Add metric to list
-
         for (i, item) in enumerate(regs):
-            if '*' not in reg_des[i][0]:
-                metrics_dict[reg_des[i][0]] = reg_des[i][1], item
+            if '*' not in reg_descriptions[i][0]:
+                metrics_dict[reg_descriptions[i][0]] = reg_descriptions[i][1], item
             else:
                 regs_ignored += 1
 
     logging.info(f'Ignored registers: {regs_ignored}')
 
-    logging.info('Scraped')
+    logging.info('Finished')
+
+    return metrics_dict
 
 
 def publish_mqtt():
     mqtt_dict = {}
     try:
-        if not config.PROMETHEUS_ENABLED:
-            scrape_solis()
+        metrics = query_datalogger()
 
         # Resize dictionary and convert to JSON
-        for metric, value in metrics_dict.items():
+        for metric, value in metrics.items():
             mqtt_dict[metric] = value[1]
         mqtt_json = dumps(mqtt_dict)
 
@@ -103,9 +98,9 @@ class CustomCollector(object):
         pass
 
     def collect(self):
-        scrape_solis()
+        metrics = query_datalogger()
 
-        for metric, value in metrics_dict.items():
+        for metric, value in metrics.items():
             yield GaugeMetricFamily(
                 f'{config.PROMETHEUS_PREFIX}{metric}',
                 value[0],
