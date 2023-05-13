@@ -45,21 +45,21 @@ all_regs = (
         ('today_exported_power', 'Today\'s exported power (0.01KWh)'),
         ('today_imported_power', 'Today\'s imported power (0.01KWh)'),
         ('today_consumption_power', 'Today\'s power consumption (0.01KWh)'),
-        ('total_generated_power_high', 'Total generated power High-Byte (1KWh)'),
-        ('total_generated_power_low', 'Total generated power Low-Byte (1KWh)'),
-        ('total_exported_power_high', 'Total exported power High-Byte (1KWh)'),
-        ('total_exported_power_low', 'Total exported power Low-Byte (1KWh)'),
-        ('total_imported_power_high', 'Total imported power High-Byte (1KWh)'),
-        ('total_imported_power_low', 'Total imported power Low-Byte (1KWh)'),
-        ('total_consumption_high', 'Total power consumption High-Byte (1KWh)'),
-        ('total_consumption_low', 'Total power consumption Low-Byte (1KWh)'),
     )),
+
+    (0x21C, (
+        ('total_generated_power', 'Total generated power (1KWh)'),
+        ('total_exported_power', 'Total exported power (1KWh)'),
+        ('total_imported_power', 'Total imported power (1KWh)'),
+        ('total_consumption', 'Total power consumption (1KWh)'),
+    ), 2),
 
     (0x243, (
         ('today_generation_time', 'Today\'s generation time (1 min)'),
-        ('total_generation_time_high', 'Total generation time High-Byte (1 hour)'),
-        ('total_generation_time_low', 'Total generation time Low-Byte (1 hour)'),
     )),
+    (0x244, (
+        ('total_generation_time', 'Total generation time (hours)'),
+    ), 2),
 
     (0x22A, (
         ('countdown_time', 'Countdown time'),
