@@ -9,18 +9,38 @@ from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
 from pysolarmanv5.pysolarmanv5 import PySolarmanV5
 
+def retry(function, times=3, delay=3):
+    # We want one initial attempt and `times` retries
+    tries = times + 1
+    for retry in range(tries):
+        try:
+            return function()
+        except Exception as e:
+            if retry == tries:
+                logging.exception(
+                    f'Retry limit of {times} reached for {function}. Exiting.'
+                )
+                exit(1)
+            logging.exception(
+                f'{function} failed. Retry #{retry} in {delay}s'
+            )
+            sleep(delay)
+
 def query_datalogger():
     metrics_dict = {}
     regs_ignored = 0
     try:
-        logging.info('Connecting to Solarman ModBus interface')
+        logging.info('Connecting to data logger ModBus interface…')
         modbus = PySolarmanV5(
             config.INVERTER_ADDRESS,
             config.INVERTER_SERIAL,
             port=config.INVERTER_PORT
         )
     except Exception as e:
-        logging.error(f'{repr(e)}. Exiting')
+        logging.exception(
+            f'Couldn\t connect to data logger ModBus interface. '
+            f'Exiting.'
+        )
         exit(1)
 
     logging.info('Connected')
@@ -30,25 +50,14 @@ def query_datalogger():
         quantity = len(r[1])
         reg_descriptions = r[1]
 
-        # Sometimes the query fails this will retry 3 times before exiting
-        for retry in range(0, 3):
-            try:
-                logging.debug(f'Reading registers at {address}, quantity {quantity}')
-
-                regs = modbus.read_holding_registers(
-                    register_addr=address,
-                    quantity=reg_len
-                )
-                logging.debug(regs)
-            except Exception as e:
-                if retry == 3:
-                    logging.error(f'Cannot read registers at {address}, quantity {quantity}. Tried {retry} times. Exiting {repr(e)}')
-                    exit(1)
-                logging.error(f'Cannot read registers {address}, quantity {quantity} {repr(e)}')
-                logging.error(f'Retry {retry} in 3s')
-                sleep(3)
-                continue
-            break
+        logging.debug(f'Reading registers at {address}, quantity {quantity}')
+        regs = retry(
+            lambda: modbus.read_holding_registers(
+                register_addr=address,
+                quantity=quantity
+            )
+        )
+        logging.debug(regs)
 
         # Add metric to list
         for (i, item) in enumerate(regs):
@@ -57,7 +66,7 @@ def query_datalogger():
             else:
                 regs_ignored += 1
 
-    logging.info(f'Ignored registers: {regs_ignored}')
+    logging.debug(f'Ignored registers: {regs_ignored}')
 
     logging.info('Finished')
 
@@ -133,6 +142,6 @@ if __name__ == '__main__':
                 publish_mqtt()
             sleep(config.CHECK_INTERVAL)
 
-    except Exception as e:
-        logging.error(f'Cannot start: {repr(e)}')
+    except:
+        logging.exception(f'Cannot start')
         exit(1)
