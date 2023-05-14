@@ -26,24 +26,6 @@ def retry(function, times=3, delay=3):
             )
             sleep(delay)
 
-def read_registers(modbus, address, quantity=1, length=1):
-    if 1 < length:
-        return [
-            modbus.read_holding_register_formatted(
-                sub_address,
-                length
-            )
-            for sub_address in range(
-                address,
-                address+(quantity*length),
-                length
-            )
-        ]
-    return modbus.read_holding_registers(
-        address,
-        quantity
-    )
-
 def query_datalogger():
     metrics_dict = {}
     regs_ignored = 0
@@ -64,22 +46,11 @@ def query_datalogger():
     logging.info('Connected')
 
     for r in register_config.all:
-        address = r[0]
-        quantity = len(r[1])
         reg_descriptions = r[1]
-        if len(r) == 3:
-            reg_length = r[2]
-        else:
-            reg_length = 1
 
-        logging.debug(f'Reading registers at {address}, quantity {quantity}, length {reg_length}')
+        logging.debug(f'Reading {r}')
         regs = retry(
-            lambda: read_registers(
-                modbus,
-                address,
-                quantity,
-                reg_length
-            )
+            lambda: r.read(modbus)
         )
         logging.debug(regs)
 
