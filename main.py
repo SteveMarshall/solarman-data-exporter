@@ -1,5 +1,5 @@
 import config.config as config
-import config.registers as registers
+import config.registers as register_config
 import logging
 import paho.mqtt.client as mqtt
 from sys import exit
@@ -63,7 +63,7 @@ def query_datalogger():
 
     logging.info('Connected')
 
-    for r in registers.all_regs:
+    for r in register_config.all:
         address = r[0]
         quantity = len(r[1])
         reg_descriptions = r[1]
