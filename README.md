@@ -11,7 +11,9 @@ This is based on the work of
 The data is pulled directly from the Solarman WiFi stick. You need to
 provide the address and serial number of the stick.
 
-The registers to be polled and their meaning are stored in `registers.py` file. I have populated file already with registers that I use. The list is not final but shoudl be good enough for most cases. Note the registers are not the same on all models and firmware versions. They do tend to move with firmware upgrades. You may need to adjusts or add new ones for the inverter that you use.
+The registers to be read are described in `config/registers.py`. I have
+defined registers that (appear to) work for my Sofar Solar HYD-3600 ES,
+but **your inverter will likely need a different configuration**.
 
 ## Configuration
 
@@ -45,14 +47,84 @@ This script can be configured using the following environment variables:
 - `LOGLEVEL` (default: `INFO`): Set the level of detail at which to
   output log messages.
 
-### registers.py
-I have registers predefined for single phase Solis RHI 4G hybrid inverter in [registers.py](./config/registers.py) file. 
-The register mappings are not the same on all inverters. Non-hybrid inverters have different mapping, so you will need to adjust. 
-I will try to add more later on.   
-The registers are read in blocks as that is much faster than reading individual registers one by one.    
-In registers.py you need to provide:   
-Register number you want to start with(integer), register name(string, no space allowed, use '_'), register description(string)   
-Add '*' in front of register name if you want it to be skipped. 
+### Inverter-specific configuration
+
+Many inverters export metrics as “registers” using the [Modbus
+protocol](https://en.wikipedia.org/wiki/Modbus), but these **registers
+aren't the same on all inverters**, and aren't necessarily even the
+same type of registers: my inverter primarily uses "holding" registers,
+where others use mostly "input" registers.
+
+I have defined registers that (appear to) work for my Sofar Solar
+HYD-3600 ES in [`config/registers.py`](./config/registers.py). The
+configuration is based on the [Sofar Solar ModBus protocol
+manual](./examples/SOFARSOLAR-ModBus-RTU-Communication-Protocol.pdf)
+(that I found online and seemed to work).
+
+To configure this project for your inverter, you need to create a
+`config/registers.py` file of your own (unless mine happens to work for
+you, too).
+
+#### Writing your inverter configuration
+
+Registers are defined in sets to try to make it easy to read them in
+groups, which is (probably?) faster than reading them one at a time.
+
+There are (at the moment) three types of building blocks for the
+inverter configuration:
+
+- `Register`: The label and description for a given metric; the former
+  will be the basis of the Prometheus or MQTT IDs for the metric.
+- `RegisterSet`: Groups of “normal” registers. They have an address
+  (either an integer or hex address code is fine) and a list of
+  `Register`s.
+- `FormattedRegisterSet`: Groups of registers that require extra
+  processing. They might be multi-byte, or signed (negative or positive
+  value), or something else (that we don't yet support). These are
+  (currently) read one-by-one.
+
+To work out what registers your inverter uses, you'll need to look for
+the Modbus protocol documentation for your inverter or one from the
+same range/manufacturer. You can also try running
+[`examples/register_scan.py`](./examples/register_scan.py), but that
+was only useful for me once I knew the type of registers my inverter
+used, and roughly what addresses to look at.
+
+Your `config/registers.py` should look something like this (albeit much
+longer):
+
+```python
+# Use shorthands for Register, RegisterSet, and FormattedRegisterSet
+from registers import (
+    Register as R,
+    RegisterSet as RS,
+    FormattedRegisterSet as FRS
+)
+
+all = (
+    # Four registers at addresses 0x200, 0x201, 0x203, etc
+    RS(0x200, (
+        R('running_state', 'Running state'),
+        R('fault_code_1', 'Fault code 1'),
+        R('fault_code_2', 'Fault code 2'),
+        R('fault_code_3', 'Fault code 3'),
+        R('fault_code_4', 'Fault code 4'),
+    )),
+
+    # One register that can be negative or positive, at address 0x207
+    FRS(0x207, signed=True, registers=(
+        R('grid_current_a', 'Grid A current (0.01A)'),
+    )),
+
+    # Four 2-register-long registers, at addresses 0x21C, 0x21E, etc
+    FRS(0x21C, register_size=2, registers=(
+        R('total_generated_power', 'Total generated power (1KWh)'),
+        R('total_exported_power', 'Total exported power (1KWh)'),
+        R('total_imported_power', 'Total imported power (1KWh)'),
+        R('total_consumption', 'Total power consumption (1KWh)'),
+    )),
+)
+```
 
 ## Running
 
@@ -90,13 +162,5 @@ services:
     restart: always
 ```
 
-### Testing
-To see if it is running properly I would advise enabling debugging `DEBUG = False` and also `PROMETHEUS = True`
-(you do not need to have Prometheus installed) for testing. Once started check container logs `docker logs solismon3` and in 
-browser enter url http://docker_host_ip:18000. Assuming all is ok, you should see metrics in browser. 
-
-If program fails with default [registers.py](./config/registers.py) you can try scanning registers with 
-[register_scan](./examples/register_scan.py) and see if you can get anything. For non-hybrid inverter start with 1000 and go up.
-
-## Important
-This is a very early draft version and things might not work as expected. Feel free to ask questions.
+Then run `docker compose up`, and open [the
+metrics](http://localhost:18000/).
