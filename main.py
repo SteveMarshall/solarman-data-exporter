@@ -27,7 +27,7 @@ def retry(function, times=3, delay=3):
             )
             sleep(delay)
 
-def query_datalogger():
+def get_metrics_reader():
     try:
         logging.info('Connecting to data logger ModBus interface…')
         modbus = PySolarmanV5(
@@ -42,7 +42,7 @@ def query_datalogger():
         )
         exit(1)
 
-    logging.info('Connected; reading metrics…')
+    logging.info('Connected; building lazy-loading metrics readers…')
 
     metric_sets = map(
         lambda register_set: retry(
@@ -50,20 +50,20 @@ def query_datalogger():
         ),
         register_config.all
     )
-    metrics = chain.from_iterable(metric_sets)
+    metrics_reader = chain.from_iterable(metric_sets)
 
-    logging.info('Finished')
+    logging.info('Finished; returning metrics reader')
 
-    return metrics
+    return metrics_reader
 
 
 def publish_mqtt():
     mqtt_dict = {}
     try:
-        metrics = query_datalogger()
+        metrics_reader = get_metrics_reader()
 
         # Convert metrics to JSON
-        for metric in metrics:
+        for metric in metrics_reader:
             mqtt_dict[metric.label] = metric.value
         mqtt_json = dumps(mqtt_dict)
 
@@ -87,14 +87,14 @@ def publish_mqtt():
 
 
 class CustomCollector(object):
-    def __init__(self, get_metrics):
-        self.get_metrics = get_metrics
+    def __init__(self, get_metrics_reader):
+        self.get_metrics_reader = get_metrics_reader
 
     def collect(self):
         logging.info('Prometheus collection started')
-        metrics = self.get_metrics()
+        metrics_reader = self.get_metrics_reader()
 
-        for metric in metrics:
+        for metric in metrics_reader:
             logging.debug(f'Generating gauge {config.PROMETHEUS_PREFIX}{metric.label}')
             yield GaugeMetricFamily(
                 f'{config.PROMETHEUS_PREFIX}{metric.label}',
@@ -123,7 +123,7 @@ if __name__ == '__main__':
             logging.info(f'Starting Web Server for Prometheus on port: {config.PROMETHEUS_PORT}')
             start_http_server(config.PROMETHEUS_PORT)
 
-            REGISTRY.register(CustomCollector(query_datalogger))
+            REGISTRY.register(CustomCollector(get_metrics_reader))
 
         while True:
             if config.MQTT_ENABLED:
