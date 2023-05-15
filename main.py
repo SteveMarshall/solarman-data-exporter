@@ -2,6 +2,7 @@ import config.config as config
 import config.registers as register_config
 import logging
 import paho.mqtt.client as mqtt
+from itertools import chain
 from sys import exit
 from json import dumps
 from time import strptime, mktime, sleep
@@ -27,8 +28,6 @@ def retry(function, times=3, delay=3):
             sleep(delay)
 
 def query_datalogger():
-    metrics_dict = {}
-    regs_ignored = 0
     try:
         logging.info('Connecting to data logger ModBus interface…')
         modbus = PySolarmanV5(
@@ -43,29 +42,19 @@ def query_datalogger():
         )
         exit(1)
 
-    logging.info('Connected')
+    logging.info('Connected; reading metrics…')
 
-    for r in register_config.all:
-        reg_descriptions = r[1]
-
-        logging.debug(f'Reading {r}')
-        regs = retry(
-            lambda: r.read(modbus)
-        )
-        logging.debug(regs)
-
-        # Add metric to list
-        for (i, item) in enumerate(regs):
-            if '*' not in reg_descriptions[i][0]:
-                metrics_dict[reg_descriptions[i][0]] = reg_descriptions[i][1], item
-            else:
-                regs_ignored += 1
-
-    logging.debug(f'Ignored registers: {regs_ignored}')
+    metric_sets = map(
+        lambda register_set: retry(
+            lambda: register_set.read_metrics(modbus)
+        ),
+        register_config.all
+    )
+    metrics = chain.from_iterable(metric_sets)
 
     logging.info('Finished')
 
-    return metrics_dict
+    return metrics
 
 
 def publish_mqtt():
@@ -73,9 +62,9 @@ def publish_mqtt():
     try:
         metrics = query_datalogger()
 
-        # Resize dictionary and convert to JSON
-        for metric, value in metrics.items():
-            mqtt_dict[metric] = value[1]
+        # Convert metrics to JSON
+        for metric in metrics:
+            mqtt_dict[metric.label] = metric.value
         mqtt_json = dumps(mqtt_dict)
 
         def on_message(mqttc, userdata, msg):
@@ -98,18 +87,22 @@ def publish_mqtt():
 
 
 class CustomCollector(object):
-    def __init__(self):
-        pass
+    def __init__(self, get_metrics):
+        self.get_metrics = get_metrics
 
     def collect(self):
-        metrics = query_datalogger()
+        logging.info('Prometheus collection started')
+        metrics = self.get_metrics()
 
-        for metric, value in metrics.items():
+        for metric in metrics:
+            logging.debug(f'Generating gauge {config.PROMETHEUS_PREFIX}{metric.label}')
             yield GaugeMetricFamily(
-                f'{config.PROMETHEUS_PREFIX}{metric}',
-                value[0],
-                value=value[1]
+                f'{config.PROMETHEUS_PREFIX}{metric.label}',
+                metric.description,
+                metric.value
             )
+
+        logging.info('Prometheus collection ended')
 
 
 if __name__ == '__main__':
@@ -130,7 +123,7 @@ if __name__ == '__main__':
             logging.info(f'Starting Web Server for Prometheus on port: {config.PROMETHEUS_PORT}')
             start_http_server(config.PROMETHEUS_PORT)
 
-            REGISTRY.register(CustomCollector())
+            REGISTRY.register(CustomCollector(query_datalogger))
 
         while True:
             if config.MQTT_ENABLED:
