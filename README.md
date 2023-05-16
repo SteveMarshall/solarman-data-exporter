@@ -73,15 +73,13 @@ groups, which is (probably?) faster than reading them one at a time.
 There are (at the moment) three types of building blocks for the
 inverter configuration:
 
-- `Register`: The label and description for a given metric; the former
-  will be the basis of the Prometheus or MQTT IDs for the metric.
-- `RegisterSet`: Groups of “normal” registers. They have an address
+- `RegisterSet`: Groups of registers. They have an address
   (either an integer or hex address code is fine) and a list of
   `Register`s.
-- `FormattedRegisterSet`: Groups of registers that require extra
-  processing. They might be multi-byte, or signed (negative or positive
-  value), or something else (that we don't yet support). These are
-  (currently) read one-by-one.
+- `Register`: The label and description for a given metric; the former
+  will be the basis of the Prometheus or MQTT IDs for the metric. They
+  can also optionally have a `size` (for multi-byte registers) or be
+  `signed` (i.e. have a value that can be negative or positive).
 
 To work out what registers your inverter uses, you'll need to look for
 the Modbus protocol documentation for your inverter or one from the
@@ -94,11 +92,10 @@ Your `config/registers.py` should look something like this (albeit much
 longer):
 
 ```python
-# Use shorthands for Register, RegisterSet, and FormattedRegisterSet
+# Use shorthands for Register and RegisterSet
 from registers import (
     Register as R,
     RegisterSet as RS,
-    FormattedRegisterSet as FRS
 )
 
 all = (
@@ -112,16 +109,16 @@ all = (
     )),
 
     # One register that can be negative or positive, at address 0x207
-    FRS(0x207, signed=True, registers=(
-        R('grid_current_a', 'Grid A current (0.01A)'),
+    RS(0x207, (
+        R('grid_current_a', 'Grid A current (0.01A)', signed=True),
     )),
 
     # Four 2-register-long registers, at addresses 0x21C, 0x21E, etc
-    FRS(0x21C, register_size=2, registers=(
-        R('total_generated_power', 'Total generated power (1KWh)'),
-        R('total_exported_power', 'Total exported power (1KWh)'),
-        R('total_imported_power', 'Total imported power (1KWh)'),
-        R('total_consumption', 'Total power consumption (1KWh)'),
+    RS(0x21C, (
+        R('total_generated_power', 'Total generated power (1KWh)', size=2),
+        R('total_exported_power', 'Total exported power (1KWh)', size=2),
+        R('total_imported_power', 'Total imported power (1KWh)', size=2),
+        R('total_consumption', 'Total power consumption (1KWh)', size=2),
     )),
 )
 ```

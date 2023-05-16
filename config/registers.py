@@ -3,7 +3,6 @@
 from registers import (
     RegisterSet as RS,
     Register as R,
-    FormattedRegisterSet as FRS
 )
 
 all = (
@@ -52,18 +51,16 @@ all = (
         R('today_consumption_power', 'Today\'s power consumption (0.01KWh)'),
     )),
 
-    FRS(0x21C, register_size=2, registers=(
-        R('total_generated_power', 'Total generated power (1KWh)'),
-        R('total_exported_power', 'Total exported power (1KWh)'),
-        R('total_imported_power', 'Total imported power (1KWh)'),
-        R('total_consumption', 'Total power consumption (1KWh)'),
+    RS(0x21C, (
+        R('total_generated_power', 'Total generated power (1KWh)', size=2),
+        R('total_exported_power', 'Total exported power (1KWh)', size=2),
+        R('total_imported_power', 'Total imported power (1KWh)', size=2),
+        R('total_consumption', 'Total power consumption (1KWh)', size=2),
     )),
 
     RS(0x243, (
         R('today_generation_time', 'Today\'s generation time (1 min)'),
-    )),
-    FRS(0x244, register_size=2, registers=(
-        R('total_generation_time', 'Total generation time (hours)'),
+        R('total_generation_time', 'Total generation time (hours)', size=2),
     )),
 
     RS(0x22A, (
