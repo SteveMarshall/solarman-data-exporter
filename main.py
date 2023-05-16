@@ -27,22 +27,8 @@ def retry(function, times=3, delay=3):
             )
             sleep(delay)
 
-def get_metrics_reader():
-    try:
-        logging.info('Connecting to data logger ModBus interface…')
-        modbus = PySolarmanV5(
-            config.INVERTER_ADDRESS,
-            config.INVERTER_SERIAL,
-            port=config.INVERTER_PORT
-        )
-    except Exception as e:
-        logging.exception(
-            f'Couldn\t connect to data logger ModBus interface. '
-            f'Exiting.'
-        )
-        exit(1)
-
-    logging.info('Connected; building lazy-loading metrics readers…')
+def get_metrics_reader(modbus):
+    logging.info('Building lazy-loading metrics readers…')
 
     metric_sets = map(
         lambda register_set: retry(
@@ -57,7 +43,7 @@ def get_metrics_reader():
     return metrics_reader
 
 
-def publish_mqtt():
+def publish_mqtt(get_metrics_reader):
     mqtt_dict = {}
     try:
         metrics_reader = get_metrics_reader()
@@ -119,15 +105,32 @@ if __name__ == '__main__':
 
         logging.info('Starting')
 
+        try:
+            logging.info('Connecting to data logger ModBus interface…')
+            modbus = PySolarmanV5(
+                config.INVERTER_ADDRESS,
+                config.INVERTER_SERIAL,
+                port=config.INVERTER_PORT,
+                auto_reconnect=True
+            )
+        except Exception as e:
+            logging.exception(
+                f'Couldn\t connect to data logger ModBus interface. '
+                f'Exiting.'
+            )
+            exit(1)
+
         if config.PROMETHEUS_ENABLED:
             logging.info(f'Starting Web Server for Prometheus on port: {config.PROMETHEUS_PORT}')
             start_http_server(config.PROMETHEUS_PORT)
 
-            REGISTRY.register(CustomCollector(get_metrics_reader))
+            REGISTRY.register(CustomCollector(
+                lambda: get_metrics_reader(modbus)
+            ))
 
         while True:
             if config.MQTT_ENABLED:
-                publish_mqtt()
+                publish_mqtt(lambda: get_metrics_reader(modbus))
             sleep(config.CHECK_INTERVAL)
 
     except:
