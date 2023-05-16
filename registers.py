@@ -4,8 +4,8 @@ from pysolarmanv5.pysolarmanv5 import PySolarmanV5
 
 Register = namedtuple(
     'Register',
-    'label description size signed',
-    defaults=(1, False)
+    'label description size signed scale',
+    defaults=(1, False, 1)
 )
 
 Metric = namedtuple('Metric', 'label description value')
@@ -36,7 +36,8 @@ class RegisterSet(namedtuple('RegisterSet', 'address registers')):
                 register.description,
                 modbus._format_response(
                     raw_values[value_start:value_end],
-                    signed=register.signed
+                    scale=register.scale,
+                    signed=register.signed,
                 )
             )
             value_start = value_end

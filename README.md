@@ -78,8 +78,10 @@ inverter configuration:
   `Register`s.
 - `Register`: The label and description for a given metric; the former
   will be the basis of the Prometheus or MQTT IDs for the metric. They
-  can also optionally have a `size` (for multi-byte registers) or be
-  `signed` (i.e. have a value that can be negative or positive).
+  can also optionally have a `size` (for multi-byte registers), be
+  `signed` (i.e. have a value that can be negative or positive), or be
+  scaled by some factor (for example, by 10 to convert metrics' units
+  from 0.01kW to watts).
 
 To work out what registers your inverter uses, you'll need to look for
 the Modbus protocol documentation for your inverter or one from the
