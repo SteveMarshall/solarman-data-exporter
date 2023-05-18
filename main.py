@@ -6,6 +6,7 @@ from itertools import chain
 from sys import exit
 from json import dumps
 from time import strptime, mktime, sleep
+from threading import Lock
 from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
 from pysolarmanv5 import PySolarmanV5
@@ -28,7 +29,16 @@ def retry(function, times=3, delay=3):
             sleep(delay)
 
 
-def get_metrics_reader(inverter_address, inverter_serial, inverter_port):
+def get_metrics_reader(
+    inverter_address,
+    inverter_serial,
+    inverter_port,
+    modbus_lock
+):
+    if modbus_lock.locked():
+        logging.info('Mobdus connection in use; waiting…')
+    modbus_lock.acquire()
+
     logging.info('Connecting to data logger…')
     modbus = PySolarmanV5(
         inverter_address,
@@ -50,6 +60,7 @@ def get_metrics_reader(inverter_address, inverter_serial, inverter_port):
     logging.info('Finished yielding metrics; closing modbus')
 
     modbus.disconnect()
+    modbus_lock.release()
 
 
 def publish_mqtt(get_metrics_reader):
@@ -112,6 +123,8 @@ if __name__ == '__main__':
             datefmt='%Y-%m-%d %H:%M:%S'
         )
 
+        modbus_lock = Lock()
+
         if config.PROMETHEUS_ENABLED:
             logging.info(f'Starting Web Server for Prometheus on port: {config.PROMETHEUS_PORT}')
             start_http_server(config.PROMETHEUS_PORT)
@@ -121,6 +134,7 @@ if __name__ == '__main__':
                     config.INVERTER_ADDRESS,
                     config.INVERTER_SERIAL,
                     config.INVERTER_PORT,
+                    modbus_lock
                 )
             ))
 
@@ -130,6 +144,7 @@ if __name__ == '__main__':
                     config.INVERTER_ADDRESS,
                     config.INVERTER_SERIAL,
                     config.INVERTER_PORT,
+                    modbus_lock
                 ))
             sleep(config.CHECK_INTERVAL)
 
