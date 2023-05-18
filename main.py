@@ -8,7 +8,7 @@ from json import dumps
 from time import strptime, mktime, sleep
 from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
-from pysolarmanv5.pysolarmanv5 import PySolarmanV5
+from pysolarmanv5 import PySolarmanV5
 
 def retry(function, times=3, delay=3):
     # We want one initial attempt and `times` retries
@@ -27,7 +27,15 @@ def retry(function, times=3, delay=3):
             )
             sleep(delay)
 
-def get_metrics_reader(modbus):
+
+def get_metrics_reader(inverter_address, inverter_serial, inverter_port):
+    logging.info('Connecting to data logger…')
+    modbus = PySolarmanV5(
+        inverter_address,
+        inverter_serial,
+        port=inverter_port
+    )
+
     logging.info('Building lazy-loading metrics readers…')
 
     metric_sets = map(
@@ -36,11 +44,12 @@ def get_metrics_reader(modbus):
         ),
         register_config.all
     )
-    metrics_reader = chain.from_iterable(metric_sets)
+    logging.info('Yielding metrics')
+    yield from chain.from_iterable(metric_sets)
 
-    logging.info('Finished; returning metrics reader')
+    logging.info('Finished yielding metrics; closing modbus')
 
-    return metrics_reader
+    modbus.disconnect()
 
 
 def publish_mqtt(get_metrics_reader):
@@ -103,34 +112,25 @@ if __name__ == '__main__':
             datefmt='%Y-%m-%d %H:%M:%S'
         )
 
-        logging.info('Starting')
-
-        try:
-            logging.info('Connecting to data logger ModBus interface…')
-            modbus = PySolarmanV5(
-                config.INVERTER_ADDRESS,
-                config.INVERTER_SERIAL,
-                port=config.INVERTER_PORT,
-                auto_reconnect=True
-            )
-        except Exception as e:
-            logging.exception(
-                f'Couldn\t connect to data logger ModBus interface. '
-                f'Exiting.'
-            )
-            exit(1)
-
         if config.PROMETHEUS_ENABLED:
             logging.info(f'Starting Web Server for Prometheus on port: {config.PROMETHEUS_PORT}')
             start_http_server(config.PROMETHEUS_PORT)
 
             REGISTRY.register(CustomCollector(
-                lambda: get_metrics_reader(modbus)
+                lambda: get_metrics_reader(
+                    config.INVERTER_ADDRESS,
+                    config.INVERTER_SERIAL,
+                    config.INVERTER_PORT,
+                )
             ))
 
         while True:
             if config.MQTT_ENABLED:
-                publish_mqtt(lambda: get_metrics_reader(modbus))
+                publish_mqtt(lambda: get_metrics_reader(
+                    config.INVERTER_ADDRESS,
+                    config.INVERTER_SERIAL,
+                    config.INVERTER_PORT,
+                ))
             sleep(config.CHECK_INTERVAL)
 
     except:

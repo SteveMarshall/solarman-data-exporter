@@ -1,6 +1,6 @@
 from collections import namedtuple
 import logging
-from pysolarmanv5.pysolarmanv5 import PySolarmanV5
+from pysolarmanv5 import PySolarmanV5
 
 Register = namedtuple(
     'Register',
