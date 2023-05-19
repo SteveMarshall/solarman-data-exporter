@@ -40,11 +40,15 @@ def get_metrics_reader(
     modbus_lock.acquire()
 
     logging.info('Connecting to data logger…')
-    modbus = PySolarmanV5(
-        inverter_address,
-        inverter_serial,
-        port=inverter_port
-    )
+    try:
+        modbus = retry(lambda: PySolarmanV5(
+            inverter_address,
+            inverter_serial,
+            port=inverter_port
+        ))
+    except Exception as e:
+        modbus_lock.release()
+        raise e
 
     logging.info('Building lazy-loading metrics readers…')
 
@@ -55,7 +59,11 @@ def get_metrics_reader(
         register_config.all
     )
     logging.info('Yielding metrics')
-    yield from chain.from_iterable(metric_sets)
+    try:
+        yield from chain.from_iterable(metric_sets)
+    except Exception as e:
+        modbus_lock.release()
+        raise e
 
     logging.info('Finished yielding metrics; closing modbus')
 
